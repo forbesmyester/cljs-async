@@ -30,33 +30,27 @@
 ;   (let [c (chan)]
 ;     (go (>! c (<! (<<< che 5)))) c))
 
-(defn <async-worker [pred args]
-  (let [
-        call-if-done (fn [ar done] (if (= 0 (count (filter nil? ar))) (done)) nil)
+(defn <async-map [pred args]
+  (let [call-if-done (fn [ar done] (if (= 0 (count (filter nil? ar))) (done)) nil)
         return-channel (async/chan)
         res (atom (vec (repeat (count args) nil)))
-        get-async-splicer (fn [p nodejs-async-func]
-                        (fn [v]
-                          (nodejs-async-func
-                            v
-                            (fn [err result]
-                              (swap! res assoc-in [p] result)
-                              (call-if-done @res #(async/put! return-channel @res))
-                          ))))
+        get-async-splicer (fn [pos nodejs-async-func]
+                            (fn [v] ;;; AS PARTIAL
+                              (nodejs-async-func
+                                v
+                                (fn [err result]
+                                  (swap! res assoc pos result)
+                                  (call-if-done @res #(async/put! return-channel @res))))))
         ]
     (loop [f (first args) r (rest args) pos 0]
       ((get-async-splicer pos pred)  f)
       (if (= 0 (count r)) 
-        ; (async/go (print (async/<! return-channel)))
         return-channel
-        (recur (first r) (rest r) (inc pos))
-        )
-      )
-    )
-  )
+        (recur (first r) (rest r) (inc pos))))))
+
 
 (let [node-like-cb-func (fn [in cb] (cb 0 (+ in 1)))]
-  (async/go (print (async/<! (<async-worker node-like-cb-func [1 2 3]))))
+  (async/go (print (async/<! (<async-map node-like-cb-func [1 2 3]))))
   )
 
 (defn -main [& args]
@@ -65,7 +59,7 @@
   ; (print (<!! (<getCheese 5))))
   ; (print (getCheese 5)))
   ; (go (print (map (fn [x] (str <! x)) [(<getCheese 5) (<getCheese 5)])))
-  (asyncm/go (print (async/<! (<async-worker che [1 2 3]))))
+  (asyncm/go (print (async/<! (<async-map che [1 2 3]))))
   )  ; (print (<!! getCheese)))
 
 ; (let [c (chan 10)]

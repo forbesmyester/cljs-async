@@ -3,6 +3,8 @@
             [cljs.nodejs :as nodejs])
   (:require-macros [cljs.core.async.macros :as asyncm]))
 
+; (require '[cljs.core.async :as async])
+
 (def che (nodejs/require "./asyncThing.js"))
 
 (defn <<< [f & args]
@@ -34,13 +36,13 @@
   (let [call-if-done (fn [ar done] (if (= 0 (count (filter nil? ar))) (done)) nil)
         return-channel (async/chan)
         res (atom (vec (repeat (count args) nil)))
+        nodejs-callback (fn [pos err result]
+                          (swap! res assoc pos result)
+                          (call-if-done @res #(async/put! return-channel @res)))
+        nodejs-fire (fn [pos nodejs-async-func v] ;;; AS PARTIAL
+                          (nodejs-async-func v (partial nodejs-callback pos)))
         get-async-splicer (fn [pos nodejs-async-func]
-                            (fn [v] ;;; AS PARTIAL
-                              (nodejs-async-func
-                                v
-                                (fn [err result]
-                                  (swap! res assoc pos result)
-                                  (call-if-done @res #(async/put! return-channel @res))))))
+                            (partial nodejs-fire pos nodejs-async-func))
         ]
     (loop [f (first args) r (rest args) pos 0]
       ((get-async-splicer pos pred)  f)

@@ -1,4 +1,4 @@
-Clojure Implementations of Caolan McMahon's async.parallel and async.map.
+# Clojure Implementations of Caolan McMahon's async.parallel and async.map
 
 The is a re-implementation of Caolan McMahon's [https://github.com/caolan/async#parallel](parallel) and
 [Caolan McMahon's](map) functions from [https://github.com/caolan/async](async).

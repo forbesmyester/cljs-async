@@ -1,9 +1,10 @@
 'use strict'
 
 module.exports = function getCheese(x, resolve) {
-    console.log("S(" + x + ")");
     setTimeout(function() {
-        console.log("F(" + x + ")");
-        resolve(0, ["Cheese(", x, ")"].join(''));
-    }, 2000);
+        if (x > 10) {
+            return resolve(1);
+        }
+        resolve(0, (1 + x));
+    }, (Math.random() * 100) + 100);
 };

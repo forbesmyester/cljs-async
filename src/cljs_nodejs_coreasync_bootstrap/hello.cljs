@@ -1,46 +1,62 @@
 (ns cljs-nodejs-coreasync-bootstrap.hello
-  (:require [cljs.core.async :as async]
-            [cljs.nodejs :as nodejs])
-  (:require-macros [cljs.core.async.macros :as asyncm]))
+  (:require
+    [cljs.nodejs :as nodejs]
+    [cljs-nodejs-coreasync-bootstrap.async :as callback-async]))
 
-; (require '[clojure.core.async :as async])
+(def node-like-cb-func (nodejs/require "./asyncThing.js"))
 
-(def che (nodejs/require "./asyncThing.js"))
+; This code is for easier jvm based clojure repl development...
+; (defn- node-like-cb-func [in cb]
+;   (if (>= 10 in)
+;     (cb 0 (+ in 1))
+;     (cb 1)))
+;
+; (defn- async-tester [func & params]
+;   (let [a (atom nil)
+;         cb (fn [ & xs]
+;              (if (= 0 (first xs))
+;                (reset! a xs)
+;                (reset! a [(first xs)])))
+;         ]
+;     (apply
+;       func
+;       (concat params [cb]))
+;     @a
+;     ))
 
-(defn <<<e [f valid-errs & args]
-  (let [c (async/chan)
-        callback (fn [err x]
-                   (if (contains? valid-errs err)
-                     (async/put! c x)
-                     (async/close! c)))]
-    (apply f (concat args [callback])) c))
+(defn test-is-equal [expected async-func-missing-callback message]
+  (async-func-missing-callback (fn [err result]
+                                 (print (str
+                                          message "\n\t"
+                                          expected "\n\t"
+                                          [err result] "\n\n\n")))))
 
-(defn <<< [f & args] (apply <<<e (concat [f #{0}] args)))
-
-(defn async-map [pred args next-callback]
-  (let [res (atom (vec (repeat (count args) nil)))
-        nodejs-callback (fn [pos err result]
-                          (swap! res assoc pos result)
-                          (if (empty? (filter nil? @res))
-                            (next-callback 0 @res)
-                            ))
-        nodejs-fire (fn [pos nodejs-async-func v]
-                          (nodejs-async-func v (partial nodejs-callback pos)))
-        get-nodejs-fire (fn [pos nodejs-async-func]
-                            (partial nodejs-fire pos nodejs-async-func))
-        ]
-    (loop [f (first args) r (rest args) pos 0]
-      ((get-nodejs-fire pos pred)  f)
-      (if (= 0 (count r)) 
-        nil
-        (recur (first r) (rest r) (inc pos))))))
-
-; (let [node-like-cb-func (fn [in cb] (cb 0 (+ in 1)))]
-;   (async/go (print (async/<! (<<< async-map node-like-cb-func [1 2 3]))))
-;   )
 
 (defn -main [& args]
-  (asyncm/go (print (async/<! (<<<e async-map #{0} che [1 2 3]))))
+
+  ; Map tests
+  (test-is-equal [0 [2 3 4]]
+                 (partial callback-async/async-map node-like-cb-func [1 2 3])
+                 "Standard map")
+
+  (test-is-equal [0 [2 3 11]]
+                 (partial callback-async/async-map node-like-cb-func [1 2 10])
+                 "Edge case map")
+
+  (test-is-equal [1 nil]
+                 (partial callback-async/async-map node-like-cb-func [1 2 11])
+                 "Node Err with map")
+
+  (test-is-equal [0 [2 3 4]]
+                 (partial callback-async/async-parallel
+                          [(partial node-like-cb-func 1) (partial node-like-cb-func 2) (partial node-like-cb-func 3)]
+                          )
+                 "Standard parallel")
+  (test-is-equal [1 nil]
+                 (partial callback-async/async-parallel
+                          [(partial node-like-cb-func 1) (partial node-like-cb-func 2) (partial node-like-cb-func 11)]
+                          )
+                 "Err parallel")
   )
 
 (set! *main-cli-fn* -main)

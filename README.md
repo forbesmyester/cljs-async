@@ -1,17 +1,6 @@
-# cljs-nodejs-coreasync-bootstrap
+Clojure Implementations of Caolan McMahon's async.parallel and async.map.
 
-Scaffold setup for some ClojureScript, node.js, core.async action
+The is a re-implementation of Caolan McMahon's [https://github.com/caolan/async#parallel](parallel) and
+[Caolan McMahon's](map) functions from [https://github.com/caolan/async](async).
 
-## Usage
-
-```
-$ npm install
-$ lein cljsbuild once adv
-$ node hello.js
-```
-
-## License
-
-Copyright © 2013 FIXME
-
-Distributed under the Eclipse Public License, the same as Clojure.
+This code works in both ClojureScript and Clojure however the style is derived from the target language of ClojureScript and I doubt you would want to write this style of code in Clojure itself.

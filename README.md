@@ -4,3 +4,8 @@ The is a re-implementation of Caolan McMahon's [parallel](https://github.com/cao
 [map](https://github.com/caolan/async#map) functions from [async](https://github.com/caolan/async).
 
 This code works in both ClojureScript and Clojure however the style is derived from the target language of JavaScript and I doubt you would want to write this style of code in Clojure itself.
+
+To run test this code type
+
+    lein cljsbuild once
+    node hello.js
